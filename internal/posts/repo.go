@@ -7,13 +7,17 @@ import (
 	"time"
 )
 
+type PostsSubsciber func(post *model.Post)
+
 type Repo struct {
-	posts []model.Post
+	posts       []model.Post
+	onPostAdded func(title string, description string)
 }
 
-func NewRepo() *Repo {
+func NewRepo(onPostAdded func(title string, description string)) *Repo {
 	return &Repo{
-		posts: []model.Post{},
+		posts:       []model.Post{},
+		onPostAdded: onPostAdded,
 	}
 }
 
@@ -26,6 +30,7 @@ func (repo *Repo) Create(postInput *model.PostInput) *model.Post {
 	}
 
 	repo.posts = append(repo.posts, newPost)
+	repo.onPostAdded(newPost.Title, newPost.Description)
 
 	return &newPost
 }
