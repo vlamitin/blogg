@@ -2,12 +2,11 @@ package posts
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/vlamitin/blogg/graph/model"
-	"time"
 )
-
-type PostsSubsciber func(post *model.Post)
 
 type Repo struct {
 	posts         []model.Post
@@ -41,13 +40,17 @@ func (repo *Repo) Create(postInput *model.PostInput) *model.Post {
 
 func (repo *Repo) Save(id string, postInput *model.PostInput) (*model.Post, error) {
 	var itemToEdit model.Post
+	var found = false
 
 	for _, item := range repo.posts {
 		if item.ID == id {
 			itemToEdit = item
+			found = true
 			break
 		}
+	}
 
+	if !found {
 		return nil, fmt.Errorf("post not found with id %s", id)
 	}
 
@@ -59,19 +62,24 @@ func (repo *Repo) Save(id string, postInput *model.PostInput) (*model.Post, erro
 
 func (repo *Repo) Get(id string) (*model.Post, error) {
 	var requestedItem model.Post
+	var found = false
 
 	for _, item := range repo.posts {
 		if item.ID == id {
 			requestedItem = item
+			found = true
 			break
 		}
+	}
+
+	if !found {
 		return nil, fmt.Errorf("post not found with id %s", id)
 	}
 
 	return &requestedItem, nil
 }
 
-func (repo *Repo) GetMany(limit int, offset int) ([]*model.Post, error) {
+func (repo *Repo) GetMany(limit, offset int) ([]*model.Post, error) {
 	res := []*model.Post{}
 	for i := offset; i < offset+limit-1; i++ {
 		if i > len(repo.posts)-1 {

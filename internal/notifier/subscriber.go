@@ -1,9 +1,10 @@
 package notifier
 
 import (
-	"github.com/gorilla/websocket"
 	"log"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 const (
@@ -22,7 +23,6 @@ const (
 
 var (
 	newline = []byte{'\n'}
-	space   = []byte{' '}
 )
 
 type Subscriber struct {
@@ -34,11 +34,23 @@ type Subscriber struct {
 func (s *Subscriber) readPump() {
 	defer func() {
 		s.notifier.unsubscribeCh <- s
-		s.conn.Close()
+		err := s.conn.Close()
+		if err != nil {
+			log.Printf("error when close connection: %v", err)
+		}
 	}()
 	s.conn.SetReadLimit(maxMessageSize)
-	s.conn.SetReadDeadline(time.Now().Add(pongWait))
-	s.conn.SetPongHandler(func(string) error { s.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	err := s.conn.SetReadDeadline(time.Now().Add(pongWait))
+	if err != nil {
+		log.Printf("error when set read dedline: %v", err)
+	}
+	s.conn.SetPongHandler(func(string) error {
+		err := s.conn.SetReadDeadline(time.Now().Add(pongWait))
+		if err != nil {
+			log.Printf("error when set read dedline: %v", err)
+		}
+		return nil
+	})
 	for {
 		// we don't need incoming message, so ignore it
 		// but we need connection close error to close connection (in defer)
@@ -56,14 +68,23 @@ func (s *Subscriber) writePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
-		s.conn.Close()
+		err := s.conn.Close()
+		if err != nil {
+			log.Printf("error close connection: %v", err)
+		}
 	}()
 	for {
 		select {
 		case message, ok := <-s.sendCh:
-			s.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			err := s.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err != nil {
+				log.Printf("error when set write dedline: %v", err)
+			}
 			if !ok {
-				s.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				err = s.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				if err != nil {
+					log.Printf("error when write message: %v", err)
+				}
 				return
 			}
 
@@ -71,20 +92,32 @@ func (s *Subscriber) writePump() {
 			if err != nil {
 				return
 			}
-			w.Write([]byte(message))
+			_, err = w.Write([]byte(message))
+			if err != nil {
+				log.Printf("error when write message: %v", err)
+			}
 
 			// Add queued chat messages to the current websocket message.
 			n := len(s.sendCh)
 			for i := 0; i < n; i++ {
-				w.Write(newline)
-				w.Write([]byte(<-s.sendCh))
+				_, err = w.Write(newline)
+				if err != nil {
+					log.Printf("error when write message: %v", err)
+				}
+				_, err = w.Write([]byte(<-s.sendCh))
+				if err != nil {
+					log.Printf("error when write message: %v", err)
+				}
 			}
 
 			if err := w.Close(); err != nil {
 				return
 			}
 		case <-ticker.C:
-			s.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			err := s.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err != nil {
+				log.Printf("error when set write deadline: %v", err)
+			}
 			if err := s.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}

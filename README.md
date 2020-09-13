@@ -3,6 +3,7 @@ qraphql tryout
 
 ## Prerequisites
  - go 1.14
+ - golangci-lint (to run linter)
 
 ## Run
  - `go generate ./...`

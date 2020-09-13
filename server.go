@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/vlamitin/blogg/graph/model"
-	"github.com/vlamitin/blogg/internal/notifier"
-	"github.com/vlamitin/blogg/internal/posts"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/vlamitin/blogg/graph/model"
+	"github.com/vlamitin/blogg/internal/notifier"
+	"github.com/vlamitin/blogg/internal/posts"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"

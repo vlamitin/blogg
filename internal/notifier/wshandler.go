@@ -1,9 +1,10 @@
 package notifier
 
 import (
-	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
+
+	"github.com/gorilla/websocket"
 )
 
 type wsHandler struct {
@@ -19,13 +20,15 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
+const subscriberBufferLen = 256
+
 func (wsh *wsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	newSubscriber := &Subscriber{notifier: wsh.notifier, conn: conn, sendCh: make(chan string, 256)}
+	newSubscriber := &Subscriber{notifier: wsh.notifier, conn: conn, sendCh: make(chan string, subscriberBufferLen)}
 	wsh.notifier.subscribeCh <- newSubscriber
 
 	// Allow collection of memory referenced by the caller by doing all work in
