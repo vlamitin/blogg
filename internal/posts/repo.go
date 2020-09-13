@@ -10,14 +10,14 @@ import (
 type PostsSubsciber func(post *model.Post)
 
 type Repo struct {
-	posts       []model.Post
-	onPostAdded func(title string, description string)
+	posts         []model.Post
+	postAddedChan chan<- model.Post
 }
 
-func NewRepo(onPostAdded func(title string, description string)) *Repo {
+func NewRepo(postAddedChan chan<- model.Post) *Repo {
 	return &Repo{
-		posts:       []model.Post{},
-		onPostAdded: onPostAdded,
+		posts:         []model.Post{},
+		postAddedChan: postAddedChan,
 	}
 }
 
@@ -30,7 +30,11 @@ func (repo *Repo) Create(postInput *model.PostInput) *model.Post {
 	}
 
 	repo.posts = append(repo.posts, newPost)
-	repo.onPostAdded(newPost.Title, newPost.Description)
+
+	select {
+	case repo.postAddedChan <- newPost:
+	default:
+	}
 
 	return &newPost
 }

@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/gorilla/websocket"
+	"fmt"
+	"github.com/vlamitin/blogg/graph/model"
+	"github.com/vlamitin/blogg/internal/notifier"
 	"github.com/vlamitin/blogg/internal/posts"
-	"github.com/vlamitin/blogg/internal/subscribers"
 	"log"
 	"net/http"
 	"os"
@@ -22,37 +23,28 @@ func main() {
 		port = defaultPort
 	}
 
-	subs := subscribers.NewSubscribers()
-	postsRepo := posts.NewRepo(subs.Dispatch)
+	newPostsChan := make(chan model.Post)
+	newPostsMessageCh := make(chan string)
 
-	subscribeHandler := getSubscribeHandler(subs.AddSubscriber)
+	go func() {
+		for {
+			newPost := <-newPostsChan
+			newPostsMessageCh <- fmt.Sprintf("New post! Title: '%s'", newPost.Title)
+		}
+	}()
+
+	postsRepo := posts.NewRepo(newPostsChan)
+	postsNotifier := notifier.NewNotifier(newPostsMessageCh)
+	postsSubsHandler := notifier.NewWsHandler(postsNotifier)
+	go postsNotifier.Run()
 
 	postsResolver := graph.NewResolver(postsRepo)
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: postsResolver}))
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	http.Handle("/query", srv)
-	http.HandleFunc("/subscribe", subscribeHandler)
+	http.Handle("/subscribe", postsSubsHandler)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
-}
-
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
-}
-
-func getSubscribeHandler(onConnection func(sub *websocket.Conn)) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		c, err := upgrader.Upgrade(w, r, nil)
-		if err != nil {
-			log.Print("upgrade:", err)
-			return
-		}
-
-		onConnection(c)
-		c.WriteMessage(websocket.TextMessage, []byte("subscribed"))
-	}
 }
