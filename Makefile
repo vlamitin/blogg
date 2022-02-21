@@ -3,3 +3,6 @@ run:
 
 lint:
 	golangci-lint run
+
+generate:
+	go generate ./graph

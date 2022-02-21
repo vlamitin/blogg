@@ -3,7 +3,3 @@
 bin/
 db_data/
 *.log
-
-# graph generated
-graph/generated
-graph/model

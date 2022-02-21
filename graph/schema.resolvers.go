@@ -10,19 +10,19 @@ import (
 	"github.com/vlamitin/blogg/graph/model"
 )
 
-func (r *mutationResolver) CreatePost(_ context.Context, input *model.PostInput) (*model.Post, error) {
+func (r *mutationResolver) CreatePost(ctx context.Context, input *model.PostInput) (*model.Post, error) {
 	return r.postsRepo.Create(input), nil
 }
 
-func (r *mutationResolver) UpdatePost(_ context.Context, id string, input *model.PostInput) (*model.Post, error) {
+func (r *mutationResolver) UpdatePost(ctx context.Context, id string, input *model.PostInput) (*model.Post, error) {
 	return r.postsRepo.Save(id, input)
 }
 
-func (r *queryResolver) GetPost(_ context.Context, id string) (*model.Post, error) {
+func (r *queryResolver) GetPost(ctx context.Context, id string) (*model.Post, error) {
 	return r.postsRepo.Get(id)
 }
 
-func (r *queryResolver) GetPosts(_ context.Context, limit, offset int) ([]*model.Post, error) {
+func (r *queryResolver) GetPosts(ctx context.Context, limit int, offset int) ([]*model.Post, error) {
 	return r.postsRepo.GetMany(limit, offset)
 }
 
